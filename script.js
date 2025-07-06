@@ -22,32 +22,25 @@ let score = 0;
 
 // --- Setup ---
 function resizeCanvas() {
-    const aspectRatio = 9 / 16;
-    const maxHeight = window.innerHeight * 0.8;
-    const maxWidth = window.innerWidth * 0.9;
-
-    let width = Math.min(maxWidth, maxHeight / aspectRatio);
-    let height = width * aspectRatio;
-
-    if (height > maxHeight) {
-        height = maxHeight;
-        width = height / aspectRatio;
-    }
-
-    canvas.width = width;
-    canvas.height = height;
+    // The controls have a height of 50px and are 20px from the bottom.
+    // So we need to leave about 90px at the bottom for them.
+    const bottomMargin = 90;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight - bottomMargin;
 }
 
 function init() {
     resizeCanvas();
     gameState = 'init';
 
-    paddle.width = canvas.width / 5;
+    paddle.width = canvas.width / 6;
     paddle.x = (canvas.width - paddle.width) / 2;
-    paddle.y = canvas.height - 30;
+    // Position paddle lower on the screen to create more space
+    paddle.y = canvas.height - 40;
 
     ball.x = canvas.width / 2;
-    ball.y = paddle.y - ball.radius - 1;
+    // Adjust ball's starting position accordingly
+    ball.y = paddle.y - ball.radius - 5;
     ball.dx = 0;
     ball.dy = 0;
 
@@ -83,7 +76,7 @@ function drawPaddle() {
     gradient.addColorStop(0, '#ff416c');
     gradient.addColorStop(1, '#ff4b2b');
     ctx.fillStyle = gradient;
-    ctx.roundRect(paddle.x, paddle.y, paddle.width, paddle.height, [8]);
+    ctx.rect(paddle.x, paddle.y, paddle.width, paddle.height);
     ctx.fill();
     ctx.closePath();
 }

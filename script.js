@@ -12,50 +12,56 @@ const leftButton = document.getElementById('leftButton');
 const rightButton = document.getElementById('rightButton');
 
 // --- Game Objects ---
-const ball = { x: 0, y: 0, dx: 0, dy: 0, radius: 10, speed: 4 };
+const ball = { x: 0, y: 0, dx: 0, dy: 0, radius: 10, speed: 4, baseSpeed: 4 };
 const paddle = { x: 0, y: 0, width: 100, height: 15, speed: 8, dx: 0 };
 const bricks = { rows: 5, cols: 7, width: 0, height: 20, padding: 10, offsetTop: 40, offsetLeft: 30, items: [] };
+const particles = [];
 
 // --- Game State ---
 let gameState = 'init';
 let score = 0;
+let lives = 3;
 
 // --- Setup ---
 function resizeCanvas() {
-    // The controls have a height of 50px and are 20px from the bottom.
-    // So we need to leave about 90px at the bottom for them.
     const bottomMargin = 90;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight - bottomMargin;
 }
 
-function init() {
+function init(isRestart = false) {
     resizeCanvas();
-    gameState = 'init';
+    if (!isRestart) gameState = 'init';
 
     paddle.width = canvas.width / 6;
     paddle.x = (canvas.width - paddle.width) / 2;
-    // Position paddle lower on the screen to create more space
     paddle.y = canvas.height - 40;
 
+    resetBall();
+
+    if (!isRestart) {
+        bricks.width = (canvas.width - bricks.offsetLeft * 2 - bricks.padding * (bricks.cols - 1)) / bricks.cols;
+        bricks.items = [];
+        for (let c = 0; c < bricks.cols; c++) {
+            bricks.items[c] = [];
+            for (let r = 0; r < bricks.rows; r++) {
+                const brickX = (c * (bricks.width + bricks.padding)) + bricks.offsetLeft;
+                const brickY = (r * (bricks.height + bricks.padding)) + bricks.offsetTop;
+                bricks.items[c][r] = { x: brickX, y: brickY, status: 1 };
+            }
+        }
+        score = 0;
+        lives = 3;
+    }
+    draw();
+}
+
+function resetBall() {
     ball.x = canvas.width / 2;
-    // Adjust ball's starting position accordingly
     ball.y = paddle.y - ball.radius - 5;
     ball.dx = 0;
     ball.dy = 0;
-
-    bricks.width = (canvas.width - bricks.offsetLeft * 2 - bricks.padding * (bricks.cols - 1)) / bricks.cols;
-    bricks.items = [];
-    for (let c = 0; c < bricks.cols; c++) {
-        bricks.items[c] = [];
-        for (let r = 0; r < bricks.rows; r++) {
-            const brickX = (c * (bricks.width + bricks.padding)) + bricks.offsetLeft;
-            const brickY = (r * (bricks.height + bricks.padding)) + bricks.offsetTop;
-            bricks.items[c][r] = { x: brickX, y: brickY, status: 1 };
-        }
-    }
-    score = 0;
-    draw();
+    ball.speed = ball.baseSpeed;
 }
 
 // --- Drawing ---
@@ -65,9 +71,12 @@ function drawBall() {
     gradient.addColorStop(0, '#fff');
     gradient.addColorStop(1, '#a2d2ff');
     ctx.fillStyle = gradient;
+    ctx.shadowColor = '#a2d2ff';
+    ctx.shadowBlur = 15;
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
     ctx.fill();
     ctx.closePath();
+    ctx.shadowBlur = 0; // Reset shadow
 }
 
 function drawPaddle() {
@@ -102,12 +111,55 @@ function drawScore() {
     ctx.fillText(`Score: ${score}`, 20, 30);
 }
 
+function drawLives() {
+    ctx.font = '20px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(`Lives: ${lives}`, canvas.width - 85, 30);
+}
+
+function createParticles(x, y, color) {
+    for (let i = 0; i < 15; i++) {
+        particles.push({
+            x: x,
+            y: y,
+            radius: Math.random() * 3 + 1,
+            color: color,
+            dx: (Math.random() - 0.5) * 4,
+            dy: (Math.random() - 0.5) * 4,
+            life: 30
+        });
+    }
+}
+
+function drawParticles() {
+    particles.forEach((p, index) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life / 30;
+        ctx.fill();
+        ctx.closePath();
+        p.x += p.dx;
+        p.y += p.dy;
+        p.life--;
+        if (p.life <= 0) {
+            particles.splice(index, 1);
+        }
+    });
+    ctx.globalAlpha = 1.0;
+}
+
 function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Ball trail effect
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
     drawBall();
     drawPaddle();
     drawBricks();
     drawScore();
+    drawLives();
+    drawParticles();
 }
 
 // --- Game Logic ---
@@ -130,15 +182,17 @@ function update() {
     // Paddle collision
     if (ball.y + ball.radius > paddle.y && ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
         ball.dy = -ball.speed;
+        ball.speed += 0.1; // Speed up
     }
 
     // Brick collision
-    bricks.items.forEach(column => {
-        column.forEach(brick => {
+    bricks.items.forEach((column, c) => {
+        column.forEach((brick, r) => {
             if (brick.status === 1 && ball.x > brick.x && ball.x < brick.x + bricks.width && ball.y > brick.y && ball.y < brick.y + bricks.height) {
                 ball.dy *= -1;
                 brick.status = 0;
                 score++;
+                createParticles(ball.x, ball.y, '#ffd3b6');
                 if (score === bricks.rows * bricks.cols) {
                     gameState = 'win';
                     winScreen.style.display = 'flex';
@@ -147,10 +201,15 @@ function update() {
         });
     });
 
-    // Game over
+    // Lose a life
     if (ball.y + ball.radius > canvas.height) {
-        gameState = 'gameover';
-        gameOverScreen.style.display = 'flex';
+        lives--;
+        if (lives > 0) {
+            resetBall();
+        } else {
+            gameState = 'gameover';
+            gameOverScreen.style.display = 'flex';
+        }
     }
 
     draw();
@@ -189,7 +248,7 @@ startButton.addEventListener('click', () => {
     });
 });
 
-window.addEventListener('resize', init);
+window.addEventListener('resize', () => init(true));
 document.addEventListener('keydown', keyDown);
 document.addEventListener('keyup', keyUp);
 

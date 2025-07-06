@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>リッチなブロック崩し</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="startScreen" class="overlay">
+            <h1>ブロック崩し</h1>
+            <button id="startButton">ゲーム開始</button>
+        </div>
+        <div id="gameOverScreen" class="overlay">
+            <h2>GAME OVER</h2>
+            <button id="restartButton">もう一度プレイ</button>
+        </div>
+         <div id="winScreen" class="overlay">
+            <h2>YOU WIN!</h2>
+            <button id="restartButtonWin">もう一度プレイ</button>
+        </div>
+    </div>
+    <div id="controls">
+        <button id="leftButton">◀</button>
+        <button id="rightButton">▶</button>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
